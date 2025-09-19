@@ -1,0 +1,54 @@
+data-forge:
+  enabled: true
+  model: scylla-labeling-model
+  concurrency: 1
+  entrypoint: pipeline_A
+  data-sources:
+    - id: dataset-src
+      type: folder
+      uri: D:\Projects\robbery_3_
+  #    - id: fault-dst
+  #      type: folder
+  #      uri: D:\Projects\robbery_3_fault
+  pipelines:
+    - id: pipeline_A
+      name: pipeline_A
+      error-pipeline: error_pipeline_A
+      stages:
+        - name: stage_1
+          processor: classnameValidationStage
+          config:
+            whitelist:
+              - person
+              - dog
+              - cat
+            blacklist: [ gun, knife ]
+        - name: stage_2
+          processor: bndboxValidationStage
+          config:
+            minWidth: 100
+            minHeight: 100
+            maxWidth: 100
+            maxHeight: 100
+    - id: pipeline_B
+      name: pipeline_B
+      stages:
+        - name: stage_1
+          processor: objectDeletionStage
+          config:
+            classnames: [ person ]
+        - name: stage_2
+          processor: duplicateRemoverStage
+  error-pipelines:
+    - id: error_pipeline_A
+      name: error_pipeline_A
+      stages:
+        - name: stage_1
+          processor: loggingStage
+        - name: stage_2
+          processor: collectStage
+          config:
+            dst: fault-dst
+spring:
+  application:
+    name: sad

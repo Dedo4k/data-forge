@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: data-forge-runners
+
+logging:
+  level:
+    dev.vlxd.dataforge.*: debug
