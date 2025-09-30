@@ -8,6 +8,7 @@ import java.util.Map;
 @Getter
 @Setter
 public class StageConfigurationProperties {
+
     /**
      * pipeline stage name
      */

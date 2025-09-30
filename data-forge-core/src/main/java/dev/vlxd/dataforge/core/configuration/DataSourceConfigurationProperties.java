@@ -1,5 +1,6 @@
 package dev.vlxd.dataforge.core.configuration;
 
+import dev.vlxd.dataforge.core.constant.DataSourceLoadStrategy;
 import dev.vlxd.dataforge.core.constant.DataSourceType;
 import lombok.Getter;
 import lombok.Setter;
@@ -7,18 +8,29 @@ import lombok.Setter;
 @Getter
 @Setter
 public class DataSourceConfigurationProperties {
+
     /**
-     * source unique identifier
+     * data source unique identifier
      */
     private String id;
 
     /**
-     * source type
+     * primary data source is loaded on start up
+     */
+    private boolean primary;
+
+    /**
+     * data source type
      */
     private DataSourceType type;
 
     /**
-     * source uri identifier
+     * data source uri identifier
      */
     private String uri;
+
+    /**
+     * load strategy
+     */
+    private DataSourceLoadStrategy loadStrategy = DataSourceLoadStrategy.VALIDATE;
 }

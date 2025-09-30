@@ -2,11 +2,17 @@ package dev.vlxd.dataforge.api.pipeline;
 
 import java.util.List;
 
-public interface Pipeline<D> {
+public interface Pipeline<D, S extends PipelineStage<?, ?>> {
+
+    String getId();
 
     String getName();
 
-    void addStage(PipelineStage<D, ? extends PipelineStageConfig> stage);
+    boolean isPrimary();
+
+    List<S> getStages();
+
+    void addStage(S stage);
 
     void execute(D data);
 

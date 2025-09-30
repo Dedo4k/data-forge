@@ -1,11 +1,11 @@
 package dev.vlxd.dataforge.scylla.model.pipeline.stage;
 
 import dev.vlxd.dataforge.api.pipeline.PipelineStage;
-import dev.vlxd.dataforge.scylla.model.YoloDataChunk;
+import dev.vlxd.dataforge.scylla.model.YoloToken;
 
 import java.util.Map;
 
-public class DuplicateRemoverStage implements PipelineStage<YoloDataChunk, DuplicateRemoverStageConfig> {
+public class DuplicateRemoverStage implements PipelineStage<YoloToken, DuplicateRemoverStageConfig> {
 
     public static final String NAME = "duplicateRemoverStage";
 
@@ -26,12 +26,12 @@ public class DuplicateRemoverStage implements PipelineStage<YoloDataChunk, Dupli
     }
 
     @Override
-    public YoloDataChunk execute(YoloDataChunk data) {
+    public YoloToken execute(YoloToken data) {
         return null;
     }
 
     @Override
-    public boolean isSuccessful() {
-        return true;
+    public void getResult() {
+
     }
 }

@@ -1,6 +1,6 @@
 package dev.vlxd.dataforge.core.pipeline;
 
-import dev.vlxd.dataforge.api.DataOrigin;
+import dev.vlxd.dataforge.api.TokenOrigin;
 import dev.vlxd.dataforge.api.pipeline.Pipeline;
 import dev.vlxd.dataforge.api.pipeline.PipelineExecutor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Slf4j
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class BasePipelineExecutor implements PipelineExecutor {
 
     private final Pipeline pipeline;
@@ -24,20 +25,18 @@ public class BasePipelineExecutor implements PipelineExecutor {
     }
 
     @Override
-    public void execute(DataOrigin<?, ?> origin) {
+    public void execute(TokenOrigin<?, ?> origin) {
         if (!origin.isLoaded()) {
             origin.loadOrigin();
         }
 
-        pipeline.execute(origin.loadChunks());
+        pipeline.execute(origin);
 
-        if (origin.isLoaded()) {
-            origin.unloadOrigin();
-        }
+        origin.unloadOrigin();
     }
 
     @Override
-    public void execute(List<DataOrigin<?, ?>> origins) {
+    public void execute(List<TokenOrigin<?, ?>> origins) {
         long start = System.currentTimeMillis();
         try {
             executorService.invokeAll(origins.stream().map(this::prepareTask).toList());
@@ -50,7 +49,7 @@ public class BasePipelineExecutor implements PipelineExecutor {
         System.out.println(Duration.of(end - start, ChronoUnit.MILLIS));
     }
 
-    private Callable<Void> prepareTask(DataOrigin<?, ?> origin) {
+    private Callable<Void> prepareTask(TokenOrigin<?, ?> origin) {
         return () -> {
             execute(origin);
             return null;

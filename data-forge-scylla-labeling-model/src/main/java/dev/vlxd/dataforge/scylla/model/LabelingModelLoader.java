@@ -3,10 +3,12 @@ package dev.vlxd.dataforge.scylla.model;
 import dev.vlxd.dataforge.core.datasource.DataSource;
 import dev.vlxd.dataforge.core.datasource.FolderDataSource;
 import dev.vlxd.dataforge.core.model.ModelLoader;
+import dev.vlxd.dataforge.scylla.model.util.FileUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -14,8 +16,8 @@ import java.util.stream.Stream;
 
 public class LabelingModelLoader implements ModelLoader<CropOrigin> {
 
-    private final List<String> imageExtensions = List.of(".jpg", ".jpeg", ".png");
-    private final List<String> annotationExtensions = List.of(".xml");
+    private final List<String> imageExtensions = List.of("jpg", "jpeg", "png");
+    private final List<String> annotationExtensions = List.of("xml");
 
     @Override
     public List<CropOrigin> loadModel(DataSource source) {
@@ -23,14 +25,14 @@ public class LabelingModelLoader implements ModelLoader<CropOrigin> {
             try (Stream<Path> paths = Files.walk(Path.of(source.getUri()))) {
                 return paths
                         .filter(Files::isRegularFile)
-                        .collect(Collectors.groupingBy(this::removeExtension, Collectors.collectingAndThen(Collectors.toList(), pathList -> {
+                        .collect(Collectors.groupingBy(FileUtils::removeExtension, Collectors.collectingAndThen(Collectors.toList(), pathList -> {
                             CropOrigin.CropOriginBuilder builder = CropOrigin.builder();
 
                             Path first = pathList.getFirst();
-                            builder.name(removeExtension(first));
+                            builder.name(FileUtils.removeExtension(first));
 
                             for (Path path : pathList) {
-                                String ext = getExtension(path);
+                                String ext = FileUtils.getExtension(path);
 
                                 if (imageExtensions.contains(ext)) {
                                     builder.imagePath(path);
@@ -51,17 +53,9 @@ public class LabelingModelLoader implements ModelLoader<CropOrigin> {
         return Collections.emptyList();
     }
 
-    private String removeExtension(Path path) {
-        String filename = path.toString();
-        int index = filename.lastIndexOf('.');
-        return index > 0 ? filename.substring(0, index) : "";
+    @Override
+    public List<CropOrigin> loadModel(List<DataSource> dataSources) {
+        return dataSources.stream().map(this::loadModel).flatMap(Collection::stream).toList();
     }
-
-    private String getExtension(Path path) {
-        String filename = path.getFileName().toString();
-        int index = filename.lastIndexOf('.');
-        return index > 0 ? filename.substring(index).toLowerCase() : "";
-    }
-
 
 }

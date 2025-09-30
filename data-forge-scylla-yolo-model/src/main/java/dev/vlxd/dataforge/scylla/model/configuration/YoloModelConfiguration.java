@@ -5,8 +5,10 @@ import dev.vlxd.dataforge.scylla.model.pipeline.stage.DuplicateRemoverStage;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 @AutoConfiguration
+@ConditionalOnProperty(prefix = "data-forge", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class YoloModelConfiguration {
 
     private final PipelineStageRegistry registry;

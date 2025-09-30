@@ -2,7 +2,8 @@ package dev.vlxd.dataforge.core.datasource;
 
 import dev.vlxd.dataforge.core.configuration.DataForgeConfigurationProperties;
 import dev.vlxd.dataforge.core.configuration.DataSourceConfigurationProperties;
-import dev.vlxd.dataforge.core.exception.ResourceValidationException;
+import dev.vlxd.dataforge.core.constant.DataSourceLoadStrategy;
+import dev.vlxd.dataforge.core.exception.DataSourceValidationException;
 import dev.vlxd.dataforge.core.exception.UnknownResourceException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -22,11 +24,12 @@ import java.util.Map;
 @Slf4j
 @Getter
 @Component
-@ConditionalOnProperty(prefix = "data-forge", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "data-forge", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DataSourceManager {
 
-    private List<DataSourceConfigurationProperties> properties;
-    private final Map<String, DataSource> resources = new HashMap<>();
+    private final List<DataSourceConfigurationProperties> properties;
+
+    private final Map<String, DataSource> dataSources = new HashMap<>();
 
     @Autowired
     public DataSourceManager(DataForgeConfigurationProperties config) {
@@ -40,48 +43,70 @@ public class DataSourceManager {
         resolveDataSources(properties);
     }
 
-    private void resolveDataSources(List<DataSourceConfigurationProperties> resourcesConfigs) {
+    private void resolveDataSources(List<DataSourceConfigurationProperties> configs) {
         log.debug("Resolving data sources...");
-        resourcesConfigs.forEach(resourceConfig -> {
-            DataSource datasource = resolveDataSource(resourceConfig);
-            validateResource(datasource);
-            resources.put(datasource.getId(), datasource);
+        configs.forEach(resourceConfig -> {
+            DataSource dataSource = resolveDataSource(resourceConfig);
+            validateDataSource(dataSource, resourceConfig);
+            dataSources.put(dataSource.getId(), dataSource);
         });
-        log.debug("Data sources resolved: {}", resources.size());
+        log.debug("Data sources resolved: {}", dataSources.size());
     }
 
-    private DataSource resolveDataSource(DataSourceConfigurationProperties resourceConfig) {
-        switch (resourceConfig.getType()) {
+    public List<DataSource> getPrimaryDataSources() {
+        return dataSources.values().stream().filter(DataSource::isPrimary).toList();
+    }
+
+    private DataSource resolveDataSource(DataSourceConfigurationProperties config) {
+        boolean primary = config.isPrimary();
+        switch (config.getType()) {
             case FILE -> {
-                return new FileDataSource(resourceConfig.getId(), resourceConfig.getUri());
+                return new FileDataSource(config.getId(), primary, config.getUri());
             }
             case FOLDER -> {
-                return new FolderDataSource(resourceConfig.getId(), resourceConfig.getUri());
+                return new FolderDataSource(config.getId(), primary, config.getUri());
             }
             case DATABASE -> {
-                return new DatabaseDataSource(resourceConfig.getId(), resourceConfig.getUri());
+                return new DatabaseDataSource(config.getId(), primary, config.getUri());
             }
-            default -> throw new UnknownResourceException("Unknown resource type " + resourceConfig.getType());
+            default -> throw new UnknownResourceException("Unknown data source type " + config.getType());
         }
     }
 
-    private void validateResource(DataSource datasource) {
-        final String uri = datasource.getUri();
-        switch (datasource.getType()) {
+    private void validateDataSource(DataSource dataSource, DataSourceConfigurationProperties config) {
+        final String uri = dataSource.getUri();
+        final Path path = Path.of(uri);
+        switch (dataSource.getType()) {
             case FILE -> {
-                if (Files.notExists(Path.of(uri))) {
-                    throw new ResourceValidationException("File " + uri + " not exists");
+                if (Files.notExists(path)) {
+                    if (DataSourceLoadStrategy.VALIDATE_CREATE.equals(config.getLoadStrategy())) {
+                        try {
+                            Files.createFile(path);
+                        } catch (IOException e) {
+                            throw new DataSourceValidationException("Failed to create file {}", path.toString(), e);
+                        }
+                    } else {
+                        throw new DataSourceValidationException("File " + uri + " not exists");
+                    }
                 }
-                if (!Files.isRegularFile(Path.of(uri))) {
-                    throw new ResourceValidationException("Not a regular file " + uri);
+                if (!Files.isRegularFile(path)) {
+                    throw new DataSourceValidationException("Not a regular file " + uri);
                 }
             }
             case FOLDER -> {
-                if (Files.notExists(Path.of(uri))) {
-                    throw new ResourceValidationException("Folder " + uri + " not exists");
+                if (Files.notExists(path)) {
+                    if (DataSourceLoadStrategy.VALIDATE_CREATE.equals(config.getLoadStrategy())) {
+                        try {
+                            Files.createDirectories(path);
+                        } catch (IOException e) {
+                            throw new DataSourceValidationException("Failed to create directories {}", path.toString(), e);
+                        }
+                    } else {
+                        throw new DataSourceValidationException("Folder " + uri + " not exists");
+                    }
                 }
-                if (!Files.isDirectory(Path.of(uri))) {
-                    throw new ResourceValidationException("Not a folder " + uri);
+                if (!Files.isDirectory(path)) {
+                    throw new DataSourceValidationException("Not a folder " + uri);
                 }
             }
             default -> {

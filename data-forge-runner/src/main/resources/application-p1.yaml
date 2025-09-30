@@ -1,54 +1,106 @@
+spring:
+  application:
+    name: P1-runner
+
 data-forge:
-  enabled: true
   model: scylla-labeling-model
-  concurrency: 1
-  entrypoint: pipeline_A
+  concurrency: 16
   data-sources:
-    - id: dataset-src
+    - id: dataset-src-1
+      primary: true
       type: folder
-      uri: D:\Projects\robbery_3_
-  #    - id: fault-dst
-  #      type: folder
-  #      uri: D:\Projects\robbery_3_fault
+      uri: D:\Projects\robbery_3_1
+    - id: dataset-src-2
+      primary: true
+      type: folder
+      uri: D:\Projects\robbery_3_2
+    - id: person-folder
+      type: folder
+      uri: D:\Projects\robbery_3_\person
+      load-strategy: validate_create
+    - id: gun-folder
+      type: folder
+      uri: D:\Projects\robbery_3_\gun
+      load-strategy: validate_create
+    - id: gun-folder-1
+      type: folder
+      uri: D:\Projects\robbery_3_\gun-1
+      load-strategy: validate_create
+    - id: gun-folder-2
+      type: folder
+      uri: D:\Projects\robbery_3_\gun-2
+      load-strategy: validate_create
+    - id: fallback-folder
+      type: folder
+      uri: D:\Projects\robbery_3_\fallback
+      load-strategy: validate_create
+    - id: crops-folder
+      type: folder
+      uri: D:\Projects\robbery_3_\crops
+      load-strategy: validate_create
   pipelines:
     - id: pipeline_A
       name: pipeline_A
-      error-pipeline: error_pipeline_A
+      primary: true
       stages:
+        - name: stage_0
+          processor: classnameCountingStage
         - name: stage_1
           processor: classnameValidationStage
           config:
-            whitelist:
-              - person
-              - dog
-              - cat
-            blacklist: [ gun, knife ]
+            whitelist: [ person, car, gun, rifle, knife, shotgun, pistol, dog, cat ]
+            blacklist: [ tree, unknown ]
+            fallback: fallback_1
         - name: stage_2
           processor: bndboxValidationStage
           config:
             minWidth: 100
             minHeight: 100
-            maxWidth: 100
-            maxHeight: 100
+            maxWidth: 500
+            maxHeight: 500
+            fallback: fallback_1
+        - name: stage_4
+          processor: cropExtractingStage
+          config:
+            data-source: crops-folder
+        - name: stage_3
+          processor: classnameRoutingStage
+          config:
+            routes:
+              - classnames: [ gun, rifle, knife, shotgun, pistol ]
+                target: pipeline_B
+              - classnames: [ person, car, dog, cat ]
+                target: pipeline_C
     - id: pipeline_B
       name: pipeline_B
       stages:
         - name: stage_1
-          processor: objectDeletionStage
-          config:
-            classnames: [ person ]
-        - name: stage_2
-          processor: duplicateRemoverStage
-  error-pipelines:
-    - id: error_pipeline_A
-      name: error_pipeline_A
-      stages:
-        - name: stage_1
-          processor: loggingStage
-        - name: stage_2
           processor: collectStage
           config:
-            dst: fault-dst
-spring:
-  application:
-    name: sad
+            data-source: gun-folder
+        - name: stage_2
+          processor: classnameProbabilityStage
+          config:
+            classname: gun
+            probability: .7
+            data-source: gun-folder-1
+        - name: stage_3
+          processor: classnameProbabilityStage
+          config:
+            classname: knife
+            probability: .4
+            data-source: gun-folder-2
+    - id: pipeline_C
+      name: pipeline_C
+      stages:
+        - name: stage_1
+          processor: collectStage
+          config:
+            data-source: person-folder
+    - id: fallback_1
+      name: fallback_1
+      stages:
+        - name: stage_1
+          processor: collectStage
+          config:
+            data-source: fallback-folder

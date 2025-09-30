@@ -1,7 +1,7 @@
 package dev.vlxd.dataforge.scylla.model;
 
 
-import dev.vlxd.dataforge.api.DataOrigin;
+import dev.vlxd.dataforge.api.TokenOrigin;
 import dev.vlxd.dataforge.core.exception.OriginLoadException;
 import dev.vlxd.dataforge.scylla.model.configuration.JaxbConfiguration;
 import dev.vlxd.dataforge.scylla.model.mapping.Annotation;
@@ -26,7 +26,8 @@ import java.util.Objects;
 @Builder
 @ToString
 @AllArgsConstructor
-public class CropOrigin implements DataOrigin<Crop, CropIdentifier> {
+public class CropOrigin implements TokenOrigin<Crop, CropIdentifier> {
+
     private String name;
     private Path imagePath;
     private Path annotationPath;
@@ -43,7 +44,7 @@ public class CropOrigin implements DataOrigin<Crop, CropIdentifier> {
     @Override
     public void loadOrigin() {
         try {
-            Unmarshaller unmarshaller = null;
+            Unmarshaller unmarshaller;
             unmarshaller = new JaxbConfiguration().jaxbUnmarshaller();
             if (imagePath != null) {
                 this.image = ImageIO.read(imagePath.toFile());
@@ -68,17 +69,17 @@ public class CropOrigin implements DataOrigin<Crop, CropIdentifier> {
     }
 
     @Override
-    public Crop getChunk(CropIdentifier identifier) {
+    public Crop getToken(CropIdentifier identifier) {
         return identifier.identify(this);
     }
 
     @Override
-    public List<Crop> getChunks(List<CropIdentifier> identifiers) {
-        return identifiers.stream().map(this::getChunk).toList();
+    public List<Crop> getTokens(List<CropIdentifier> identifiers) {
+        return identifiers.stream().map(this::getToken).toList();
     }
 
     @Override
-    public List<Crop> loadChunks() {
+    public List<Crop> loadTokens() {
         if (!isLoaded()) {
             loadOrigin();
         }
@@ -89,12 +90,13 @@ public class CropOrigin implements DataOrigin<Crop, CropIdentifier> {
                         CropIdentifier cropIdentifier = new CropIdentifier(bndbox.getXMin(), bndbox.getYMin(), bndbox.getXMax(), bndbox.getYMax());
 
                         try {
-                            Crop crop = getChunk(cropIdentifier);
+                            Crop crop = getToken(cropIdentifier);
 
-                            crop.addFeature("class", layoutObject.getName());
-                            crop.addFeature("difficult", layoutObject.getDifficult());
-                            crop.addFeature("pose", layoutObject.getPose());
-                            crop.addFeature("truncated", layoutObject.getTruncated());
+                            crop.getVector()
+                                    .classname(layoutObject.getName())
+                                    .difficult(layoutObject.getDifficult())
+                                    .pose(layoutObject.getPose())
+                                    .truncated(layoutObject.getTruncated());
 
                             return crop;
                         } catch (RasterFormatException e) {

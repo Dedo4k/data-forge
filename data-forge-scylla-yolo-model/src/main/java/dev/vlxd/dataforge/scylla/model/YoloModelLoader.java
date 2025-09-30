@@ -5,10 +5,15 @@ import dev.vlxd.dataforge.core.model.ModelLoader;
 
 import java.util.List;
 
-public class YoloModelLoader implements ModelLoader<YoloDataOrigin> {
+public class YoloModelLoader implements ModelLoader<YoloTokenOrigin> {
 
     @Override
-    public List<YoloDataOrigin> loadModel(DataSource dataSource) {
+    public List<YoloTokenOrigin> loadModel(DataSource dataSource) {
+        return List.of();
+    }
+
+    @Override
+    public List<YoloTokenOrigin> loadModel(List<DataSource> dataSources) {
         return List.of();
     }
 }

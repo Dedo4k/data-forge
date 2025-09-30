@@ -6,6 +6,8 @@ public interface DataSource {
 
     String getId();
 
+    boolean isPrimary();
+
     DataSourceType getType();
 
     String getUri();

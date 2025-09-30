@@ -1,11 +1,11 @@
 package dev.vlxd.dataforge.scylla.model;
 
-import dev.vlxd.dataforge.api.ChunkIdentifier;
+import dev.vlxd.dataforge.api.TokenIdentifier;
 
-public class YoloDataIdentifier implements ChunkIdentifier<YoloDataChunk, YoloDataOrigin> {
+public class YoloDataIdentifier implements TokenIdentifier<YoloToken, YoloTokenOrigin> {
 
     @Override
-    public YoloDataChunk identify(YoloDataOrigin origin) {
+    public YoloToken identify(YoloTokenOrigin origin) {
         return null;
     }
 }

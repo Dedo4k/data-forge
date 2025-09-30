@@ -10,6 +10,7 @@ import java.util.List;
 @Setter
 @ConfigurationProperties(prefix = "data-forge")
 public class DataForgeConfigurationProperties {
+
     /**
      * Enables/disables DataForge initialization
      */
@@ -26,11 +27,6 @@ public class DataForgeConfigurationProperties {
     private int concurrency = 1;
 
     /**
-     * Entry pipeline name
-     */
-    private String entrypoint;
-
-    /**
      * List of  data sources
      */
     private List<DataSourceConfigurationProperties> dataSources;
@@ -39,9 +35,4 @@ public class DataForgeConfigurationProperties {
      * List of pipelines
      */
     private List<PipelineConfigurationProperties> pipelines;
-
-    /**
-     * List of error pipelines
-     */
-    private List<PipelineConfigurationProperties> errorPipelines;
 }

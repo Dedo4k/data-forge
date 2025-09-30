@@ -1,12 +1,12 @@
 package dev.vlxd.dataforge.scylla.model;
 
-import dev.vlxd.dataforge.api.ChunkIdentifier;
+import dev.vlxd.dataforge.api.TokenIdentifier;
 import lombok.ToString;
 
 import java.awt.image.BufferedImage;
 
 @ToString
-public class CropIdentifier implements ChunkIdentifier<Crop, CropOrigin> {
+public class CropIdentifier implements TokenIdentifier<Crop, CropOrigin> {
 
     private int xMin;
     private int yMin;
@@ -23,6 +23,6 @@ public class CropIdentifier implements ChunkIdentifier<Crop, CropOrigin> {
     @Override
     public Crop identify(CropOrigin origin) {
         BufferedImage subImage = origin.getImage().getSubimage(xMin, yMin, xMax - xMin, yMax - yMin);
-        return new Crop(subImage, this, origin);
+        return new Crop(subImage, new CropVector(), this, origin);
     }
 }

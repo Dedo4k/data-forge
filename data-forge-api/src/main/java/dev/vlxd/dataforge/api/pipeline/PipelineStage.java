@@ -8,5 +8,5 @@ public interface PipelineStage<D, C extends PipelineStageConfig> {
 
     D execute(D data);
 
-    boolean isSuccessful();
+    void getResult();
 }

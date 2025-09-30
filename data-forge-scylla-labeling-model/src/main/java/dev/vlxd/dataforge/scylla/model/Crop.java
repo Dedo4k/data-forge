@@ -1,22 +1,14 @@
 package dev.vlxd.dataforge.scylla.model;
 
-import dev.vlxd.dataforge.api.BaseDataChunk;
+import dev.vlxd.dataforge.api.BaseToken;
+import lombok.ToString;
 
 import java.awt.image.BufferedImage;
 
-public class Crop extends BaseDataChunk<BufferedImage, CropIdentifier, CropOrigin> {
+@ToString
+public class Crop extends BaseToken<BufferedImage, CropVector, CropIdentifier, CropOrigin> {
 
-    public Crop(BufferedImage crop, CropIdentifier identifier, CropOrigin source) {
-        super(crop, identifier, source);
-    }
-
-    @Override
-    public String toString() {
-        return "Crop{" +
-                "data=" + data +
-                ", identifier=" + identifier +
-                ", origin=" + origin +
-                ", features=" + features +
-                '}';
+    public Crop(BufferedImage crop, CropVector vector, CropIdentifier identifier, CropOrigin source) {
+        super(crop, vector, identifier, source);
     }
 }
