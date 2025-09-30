@@ -4,7 +4,7 @@ import dev.vlxd.dataforge.core.constant.DataSourceType;
 
 public class DatabaseDataSource extends BaseDataSource {
 
-    public DatabaseDataSource(String id, String uri) {
-        super(id, DataSourceType.DATABASE, uri);
+    public DatabaseDataSource(String id, boolean primary, String uri) {
+        super(id, primary, DataSourceType.DATABASE, uri);
     }
 }

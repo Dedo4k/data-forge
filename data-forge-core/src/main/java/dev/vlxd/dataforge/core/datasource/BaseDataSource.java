@@ -4,12 +4,14 @@ import dev.vlxd.dataforge.core.constant.DataSourceType;
 
 public abstract class BaseDataSource implements DataSource {
 
-    private String id;
-    private DataSourceType type;
-    private String uri;
+    private final String id;
+    private final boolean primary;
+    private final DataSourceType type;
+    private final String uri;
 
-    public BaseDataSource(String id, DataSourceType type, String uri) {
+    public BaseDataSource(String id, boolean primary, DataSourceType type, String uri) {
         this.id = id;
+        this.primary = primary;
         this.type = type;
         this.uri = uri;
     }
@@ -17,6 +19,11 @@ public abstract class BaseDataSource implements DataSource {
     @Override
     public String getId() {
         return id;
+    }
+
+    @Override
+    public boolean isPrimary() {
+        return primary;
     }
 
     @Override

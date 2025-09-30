@@ -8,20 +8,21 @@ import java.util.List;
 @Getter
 @Setter
 public class PipelineConfigurationProperties {
+
     /**
      * pipeline unique identifier
      */
     private String id;
 
     /**
+     * primary pipeline is the entrypoint for model processing
+     */
+    private boolean primary;
+
+    /**
      * pipeline name
      */
     private String name;
-
-    /**
-     * error pipeline id
-     */
-    private String errorPipeline;
 
     /**
      * list of stage configurations

@@ -1,12 +1,12 @@
 package dev.vlxd.dataforge.api.pipeline;
 
-import dev.vlxd.dataforge.api.DataOrigin;
+import dev.vlxd.dataforge.api.TokenOrigin;
 
 import java.util.List;
 
 public interface PipelineExecutor {
 
-    void execute(DataOrigin<?, ?> origin);
+    void execute(TokenOrigin<?, ?> origin);
 
-    void execute(List<DataOrigin<?, ?>> origins);
+    void execute(List<TokenOrigin<?, ?>> origins);
 }

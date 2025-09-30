@@ -1,11 +1,13 @@
 package dev.vlxd.dataforge.core.pipeline;
 
+import dev.vlxd.dataforge.api.pipeline.Pipeline;
 import dev.vlxd.dataforge.api.pipeline.PipelineStage;
 import dev.vlxd.dataforge.core.configuration.DataForgeConfigurationProperties;
 import dev.vlxd.dataforge.core.configuration.PipelineConfigurationProperties;
 import dev.vlxd.dataforge.core.configuration.StageConfigurationProperties;
 import dev.vlxd.dataforge.core.datasource.DataSourceManager;
 import dev.vlxd.dataforge.core.exception.PipelineStageCreationException;
+import dev.vlxd.dataforge.core.exception.PrimaryPipelineResolveException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +18,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +27,8 @@ import java.util.Map;
 @Slf4j
 @Getter
 @Component
-@ConditionalOnProperty(prefix = "data-forge", name = "enabled", havingValue = "true")
+@SuppressWarnings({"unchecked", "rawtypes"})
+@ConditionalOnProperty(prefix = "data-forge", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class PipelineManager {
 
     private final String PIPELINE_STAGE_CREATE_ERROR = "Failed to create pipeline stage";
@@ -33,7 +37,8 @@ public class PipelineManager {
     private final DataSourceManager datasourceManager;
     private final PipelineStageRegistry pipelineStageRegistry;
     private final List<PipelineConfigurationProperties> properties;
-    private final Map<String, DataChunkPipeline<?>> pipelines = new HashMap<>();
+    private final Map<String, Pipeline<?, ?>> pipelines = new HashMap<>();
+    private final PipelineContext pipelineContext;
 
     @Autowired
     public PipelineManager(DataForgeConfigurationProperties config,
@@ -42,6 +47,7 @@ public class PipelineManager {
         this.datasourceManager = datasourceManager;
         this.pipelineStageRegistry = pipelineStageRegistry;
         this.properties = config.getPipelines();
+        this.pipelineContext = new PipelineContext(this, datasourceManager);
     }
 
     @Order(1)
@@ -51,27 +57,41 @@ public class PipelineManager {
         resolvePipelines(properties);
     }
 
-    public DataChunkPipeline<?> getPipeline(String id) {
-        return pipelines.get(id);
+    public <T> Pipeline<T, ?> getPipeline(String id) {
+        return (Pipeline<T, ?>) pipelines.get(id);
+    }
+
+    public Pipeline<?, ?> getPrimaryPipeline() {
+        List<Pipeline<?, ?>> pipelines = this.pipelines.values().stream().filter(Pipeline::isPrimary).toList();
+        if (pipelines.size() != 1) {
+            throw new PrimaryPipelineResolveException("Primary pipeline not defined or more than 1 primary pipeline found");
+        }
+        return pipelines.getFirst();
     }
 
     private void resolvePipelines(List<PipelineConfigurationProperties> pipelinesConfigs) {
         log.debug("Resolving pipelines...");
         pipelinesConfigs.forEach(pipelineConfig -> {
-            DataChunkPipeline<?> pipeline = resolvePipeline(pipelineConfig);
+            Pipeline<?, ?> pipeline = resolvePipeline(pipelineConfig);
             pipelines.put(pipeline.getId(), pipeline);
         });
         log.debug("Pipelines resolved: {}", pipelines.size());
     }
 
-    private DataChunkPipeline<?> resolvePipeline(PipelineConfigurationProperties pipelineConfig) {
+    private Pipeline<?, ?> resolvePipeline(PipelineConfigurationProperties pipelineConfig) {
         List<StageConfigurationProperties> stagesConfigs = pipelineConfig.getStages();
-
-        List<? extends PipelineStage<?, ?>> stages = stagesConfigs.stream().map(stageConfig -> {
-            Class<? extends PipelineStage<?, ?>> stage = pipelineStageRegistry.getStage(stageConfig.getProcessor());
-            if (stage != null) {
+        List<PipelineStage> stages = new ArrayList<>();
+        BasePipelineStage prevStage = null;
+        for (StageConfigurationProperties stageConfig : stagesConfigs) {
+            Class<? extends PipelineStage<?, ?>> stageClass = pipelineStageRegistry.getStage(stageConfig.getProcessor());
+            if (stageClass != null) {
                 try {
-                    return (PipelineStage<?, ?>) stage.getConstructor(Map.class).newInstance(stageConfig.getConfig());
+                    BasePipelineStage stage = (BasePipelineStage) stageClass.getConstructor(Map.class, PipelineContext.class).newInstance(stageConfig.getConfig(), pipelineContext);
+                    if (prevStage != null) {
+                        prevStage.setNextStage(stage);
+                    }
+                    prevStage = stage;
+                    stages.add(stage);
                 } catch (InstantiationException | IllegalAccessException | NoSuchMethodException e) {
                     log.error(PIPELINE_STAGE_CREATE_ERROR, e);
                     throw new PipelineStageCreationException(PIPELINE_STAGE_CREATE_ERROR, e);
@@ -83,8 +103,8 @@ public class PipelineManager {
                 log.error(PIPELINE_NOT_FOUND_ERROR, stageConfig.getProcessor());
                 throw new PipelineStageCreationException(PIPELINE_NOT_FOUND_ERROR, stageConfig.getProcessor());
             }
-        }).toList();
+        }
 
-        return new DataChunkPipeline(pipelineConfig.getId(), pipelineConfig.getName(), stages);
+        return new TokenOriginPipeline<>(pipelineConfig.getId(), pipelineConfig.isPrimary(), pipelineConfig.getName(), stages);
     }
 }

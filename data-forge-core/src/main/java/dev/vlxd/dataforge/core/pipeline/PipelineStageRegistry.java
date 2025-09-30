@@ -13,7 +13,7 @@ import java.util.Map;
 @Slf4j
 @Getter
 @Component
-@ConditionalOnProperty(prefix = "data-forge", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "data-forge", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class PipelineStageRegistry {
 
     private final Map<String, Class<? extends PipelineStage<?, ?>>> stageRegistry = new HashMap<>();

@@ -19,4 +19,12 @@ public class BaseFeature<T> implements Feature<T> {
     public T getValue() {
         return value;
     }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setValue(T value) {
+        this.value = value;
+    }
 }

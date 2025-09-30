@@ -1,24 +1,30 @@
 package dev.vlxd.dataforge.core.pipeline;
 
-import dev.vlxd.dataforge.api.DataChunk;
+import dev.vlxd.dataforge.api.Token;
 import dev.vlxd.dataforge.api.pipeline.Pipeline;
 import dev.vlxd.dataforge.api.pipeline.PipelineStage;
-import dev.vlxd.dataforge.api.pipeline.PipelineStageConfig;
 import lombok.Getter;
 
 import java.util.List;
 
 @Getter
-public class DataChunkPipeline<D extends DataChunk<?>> implements Pipeline<D> {
+public class TokenPipeline<D extends Token<?, ?, ?, ?>, S extends PipelineStage<D, ?>> implements Pipeline<D, S> {
 
     private final String id;
+    private final boolean primary;
     private final String name;
-    private final List<? extends PipelineStage<D, ?>> stages;
+    private final List<S> stages;
 
-    public DataChunkPipeline(String id, String name, List<? extends PipelineStage<D, ?>> stages) {
+    public TokenPipeline(String id, boolean primary, String name, List<S> stages) {
         this.id = id;
+        this.primary = primary;
         this.name = name;
         this.stages = stages;
+    }
+
+    @Override
+    public String getId() {
+        return id;
     }
 
     @Override
@@ -27,15 +33,18 @@ public class DataChunkPipeline<D extends DataChunk<?>> implements Pipeline<D> {
     }
 
     @Override
-    public void addStage(PipelineStage<D, ? extends PipelineStageConfig> stage) {
+    public boolean isPrimary() {
+        return primary;
+    }
 
+    @Override
+    public void addStage(S stage) {
+        stages.add(stage);
     }
 
     @Override
     public void execute(D data) {
-        for (PipelineStage<D, ?> stage : stages) {
-            stage.execute(data);
-        }
+        stages.getFirst().execute(data);
     }
 
     @Override

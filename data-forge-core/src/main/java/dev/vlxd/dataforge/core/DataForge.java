@@ -1,13 +1,15 @@
 package dev.vlxd.dataforge.core;
 
+import dev.vlxd.dataforge.api.pipeline.Pipeline;
+import dev.vlxd.dataforge.api.pipeline.PipelineStage;
 import dev.vlxd.dataforge.core.configuration.DataForgeConfigurationProperties;
 import dev.vlxd.dataforge.core.datasource.DataSource;
 import dev.vlxd.dataforge.core.datasource.DataSourceManager;
+import dev.vlxd.dataforge.core.exception.ModelNotFoundException;
 import dev.vlxd.dataforge.core.model.Model;
 import dev.vlxd.dataforge.core.model.ModelLoader;
 import dev.vlxd.dataforge.core.model.ModelRegistry;
 import dev.vlxd.dataforge.core.pipeline.BasePipelineExecutor;
-import dev.vlxd.dataforge.core.pipeline.DataChunkPipeline;
 import dev.vlxd.dataforge.core.pipeline.PipelineManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,11 +18,14 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.List;
+
 
 @Slf4j
 @Component
-@ConditionalOnProperty(prefix = "data-forge", name = "enabled", havingValue = "true")
+@SuppressWarnings({"rawtypes", "unchecked"})
+@ConditionalOnProperty(prefix = "data-forge", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DataForge {
 
     private final ModelRegistry modelRegistry;
@@ -43,19 +48,27 @@ public class DataForge {
     public void init() {
         log.debug("DataForge initialization...");
         try {
-            Model model = modelRegistry.getModel("scylla-labeling-model");
+            String modelName = properties.getModel();
 
-            DataSource datasource = datasourceManager.getResources().get("dataset-src");
+            Model model = modelRegistry.getModel(modelName);
+
+            if (model == null) {
+                throw new ModelNotFoundException("Model {} not found in registry", modelName);
+            }
+
+            List<DataSource> dataSources = datasourceManager.getPrimaryDataSources();
 
             ModelLoader loader = model.getLoader();
 
-            List dataOrigins = loader.loadModel(datasource);
+            List dataOrigins = loader.loadModel(dataSources);
 
-            DataChunkPipeline startPipeline = pipelineManager.getPipeline(properties.getEntrypoint());
+            Pipeline primaryPipeline = pipelineManager.getPrimaryPipeline();
 
-            BasePipelineExecutor pipelineExecutor = new BasePipelineExecutor(startPipeline, properties.getConcurrency());
+            BasePipelineExecutor pipelineExecutor = new BasePipelineExecutor(primaryPipeline, properties.getConcurrency());
 
             pipelineExecutor.execute(dataOrigins);
+
+            pipelineManager.getPipelines().values().stream().map(Pipeline::getStages).flatMap(Collection::stream).forEach(PipelineStage::getResult);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

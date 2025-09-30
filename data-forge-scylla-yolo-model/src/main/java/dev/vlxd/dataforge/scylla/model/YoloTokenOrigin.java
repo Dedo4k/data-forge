@@ -1,10 +1,10 @@
 package dev.vlxd.dataforge.scylla.model;
 
-import dev.vlxd.dataforge.api.DataOrigin;
+import dev.vlxd.dataforge.api.TokenOrigin;
 
 import java.util.List;
 
-public class YoloDataOrigin implements DataOrigin<YoloDataChunk, YoloDataIdentifier> {
+public class YoloTokenOrigin implements TokenOrigin<YoloToken, YoloDataIdentifier> {
 
     @Override
     public void loadOrigin() {
@@ -22,17 +22,17 @@ public class YoloDataOrigin implements DataOrigin<YoloDataChunk, YoloDataIdentif
     }
 
     @Override
-    public YoloDataChunk getChunk(YoloDataIdentifier identifier) {
+    public YoloToken getToken(YoloDataIdentifier identifier) {
         return null;
     }
 
     @Override
-    public List<YoloDataChunk> getChunks(List<YoloDataIdentifier> identifiers) {
+    public List<YoloToken> getTokens(List<YoloDataIdentifier> identifiers) {
         return List.of();
     }
 
     @Override
-    public List<YoloDataChunk> loadChunks() {
+    public List<YoloToken> loadTokens() {
         return List.of();
     }
 }
