@@ -1,9 +1,9 @@
-package dev.vlxd.dataforge.scylla.model.pipeline.stage;
+package dev.vlxd.dataforge.scylla.model.pipeline.stage.origin;
 
+import dev.vlxd.dataforge.core.DataForgeContext;
 import dev.vlxd.dataforge.core.datasource.DataSource;
 import dev.vlxd.dataforge.core.exception.PipelineStageExecutionException;
 import dev.vlxd.dataforge.core.pipeline.BasePipelineStage;
-import dev.vlxd.dataforge.core.pipeline.PipelineContext;
 import dev.vlxd.dataforge.scylla.model.CropOrigin;
 import dev.vlxd.dataforge.scylla.model.configuration.JaxbConfiguration;
 import dev.vlxd.dataforge.scylla.model.util.FileUtils;
@@ -20,35 +20,27 @@ public class CollectStage extends BasePipelineStage<CropOrigin, CollectStageConf
 
     public static final String NAME = "collectStage";
 
-    public CollectStage(Map<String, Object> configMap, PipelineContext pipelineContext) {
+    public CollectStage(Map<String, Object> configMap, DataForgeContext context) {
+        super(NAME, context, CropOrigin.class);
         CollectStageConfig.CollectStageConfigBuilder builder = CollectStageConfig.builder();
         Object dataSource = configMap.get("data-source");
         if (dataSource instanceof String value) {
             builder.dataSource(value);
         }
         this.config = builder.build();
-        this.pipelineContext = pipelineContext;
     }
 
     @Override
-    public String getName() {
-        return NAME;
-    }
-
-    @Override
-    public CollectStageConfig getConfig() {
-        return config;
-    }
-
-    @Override
-    public CropOrigin execute(CropOrigin data) {
-        DataSource dataSource = pipelineContext.getDataSourceManager().getDataSources().get(config.getDataSource());
+    public void execute(CropOrigin data) {
+        DataSource dataSource = context.getDataSourceManager().getDataSources().get(config.getDataSource());
 
         Path imgSrc = data.getImagePath();
         Path imgTarget = Paths.get(dataSource.getUri(), imgSrc.getFileName().toString());
 
         try {
-            ImageIO.write(data.getImage(), FileUtils.getExtension(imgSrc), imgTarget.toFile());
+            if (data.getImage() != null) {
+                ImageIO.write(data.getImage(), FileUtils.getExtension(imgSrc), imgTarget.toFile());
+            }
         } catch (IOException e) {
             throw new PipelineStageExecutionException("Failed to write image", e);
         }
@@ -63,11 +55,6 @@ public class CollectStage extends BasePipelineStage<CropOrigin, CollectStageConf
             throw new PipelineStageExecutionException("Failed to write annotation", e);
         }
 
-        return nextStage != null ? nextStage.execute(data) : null;
-    }
-
-    @Override
-    public void getResult() {
-
+        accept(data);
     }
 }

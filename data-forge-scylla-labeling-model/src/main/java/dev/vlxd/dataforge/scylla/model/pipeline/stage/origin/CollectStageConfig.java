@@ -1,4 +1,4 @@
-package dev.vlxd.dataforge.scylla.model.pipeline.stage;
+package dev.vlxd.dataforge.scylla.model.pipeline.stage.origin;
 
 import dev.vlxd.dataforge.api.pipeline.PipelineStageConfig;
 import lombok.AllArgsConstructor;
@@ -8,6 +8,6 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor
-public class CropExtractingStageConfig implements PipelineStageConfig {
+public class CollectStageConfig implements PipelineStageConfig {
     private final String dataSource;
 }

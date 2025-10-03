@@ -1,8 +1,8 @@
-package dev.vlxd.dataforge.scylla.model.pipeline.stage;
+package dev.vlxd.dataforge.scylla.model.pipeline.stage.origin;
 
+import dev.vlxd.dataforge.core.DataForgeContext;
 import dev.vlxd.dataforge.core.exception.PipelineStageConfigParseException;
 import dev.vlxd.dataforge.core.pipeline.BasePipelineStage;
-import dev.vlxd.dataforge.core.pipeline.PipelineContext;
 import dev.vlxd.dataforge.scylla.model.CropOrigin;
 import dev.vlxd.dataforge.scylla.model.mapping.BndBox;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,8 @@ public class BndboxValidationStage extends BasePipelineStage<CropOrigin, BndboxV
 
     private final List<CropOrigin> invalidOrigins = new CopyOnWriteArrayList<>();
 
-    public BndboxValidationStage(Map<String, Object> configMap, PipelineContext pipelineContext) {
+    public BndboxValidationStage(Map<String, Object> configMap, DataForgeContext context) {
+        super(NAME, context, CropOrigin.class);
         BndboxValidationStageConfig.BndboxValidationStageConfigBuilder builder = BndboxValidationStageConfig.builder();
         Object minWidth = configMap.get("minWidth");
         if (minWidth instanceof Integer value) {
@@ -62,33 +63,31 @@ public class BndboxValidationStage extends BasePipelineStage<CropOrigin, BndboxV
             builder.fallback(value);
         }
         this.config = builder.build();
-        this.pipelineContext = pipelineContext;
     }
 
     @Override
-    public String getName() {
-        return NAME;
-    }
-
-    @Override
-    public BndboxValidationStageConfig getConfig() {
-        return config;
-    }
-
-    @Override
-    public CropOrigin execute(CropOrigin data) {
-        if (data.getAnnotation().getObjects().stream().anyMatch(layoutObject -> !isBndBoxValid(layoutObject.getBndbox()))) {
-            invalidOrigins.add(data);
-            pipelineContext.getPipelineManager().getPipeline(config.getFallback()).execute(data);
+    public void execute(CropOrigin data) {
+        if (data.getAnnotation() != null) {
+            if (data.getAnnotation().getObjects().stream().anyMatch(layoutObject -> !isBndBoxValid(layoutObject.getBndbox()))) {
+                reject(data);
+                return;
+            }
         }
 
-        return nextStage != null ? nextStage.execute(data) : null;
+        accept(data);
+    }
+
+    @Override
+    public void reject(CropOrigin data) {
+        super.reject(data);
+        invalidOrigins.add(data);
+        context.getPipelineManager().getPipeline(config.getFallback()).execute(data);
     }
 
     @Override
     public void getResult() {
-        log.info("{} result", NAME);
-        invalidOrigins.forEach(cropOrigin -> log.info(cropOrigin.getName()));
+        super.getResult();
+        log.info("Invalid data: {}", invalidOrigins.size());
     }
 
     private boolean isBndBoxValid(BndBox bndBox) {

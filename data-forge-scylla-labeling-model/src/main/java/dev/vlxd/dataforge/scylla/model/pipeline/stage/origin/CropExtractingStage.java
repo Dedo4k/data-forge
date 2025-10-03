@@ -1,8 +1,8 @@
-package dev.vlxd.dataforge.scylla.model.pipeline.stage;
+package dev.vlxd.dataforge.scylla.model.pipeline.stage.origin;
 
+import dev.vlxd.dataforge.core.DataForgeContext;
 import dev.vlxd.dataforge.core.datasource.DataSource;
 import dev.vlxd.dataforge.core.pipeline.BasePipelineStage;
-import dev.vlxd.dataforge.core.pipeline.PipelineContext;
 import dev.vlxd.dataforge.scylla.model.Crop;
 import dev.vlxd.dataforge.scylla.model.CropOrigin;
 import dev.vlxd.dataforge.scylla.model.util.FileUtils;
@@ -28,24 +28,19 @@ public class CropExtractingStage extends BasePipelineStage<CropOrigin, CropExtra
 
     private final Map<String, List<Crop>> failedCrops = new ConcurrentHashMap<>();
 
-    public CropExtractingStage(Map<String, Object> configMap, PipelineContext pipelineContext) {
+    public CropExtractingStage(Map<String, Object> configMap, DataForgeContext context) {
+        super(NAME, context, CropOrigin.class);
         CropExtractingStageConfig.CropExtractingStageConfigBuilder builder = CropExtractingStageConfig.builder();
         Object dataSource = configMap.get("data-source");
         if (dataSource instanceof String value) {
             builder.dataSource(value);
         }
         this.config = builder.build();
-        this.pipelineContext = pipelineContext;
     }
 
     @Override
-    public String getName() {
-        return NAME;
-    }
-
-    @Override
-    public CropOrigin execute(CropOrigin data) {
-        DataSource dataSource = pipelineContext.getDataSourceManager().getDataSources().get(config.getDataSource());
+    public void execute(CropOrigin data) {
+        DataSource dataSource = context.getDataSourceManager().getDataSources().get(config.getDataSource());
         String extension = FileUtils.getExtension(data.getImagePath());
 
         data.loadTokens().forEach(crop -> {
@@ -66,18 +61,12 @@ public class CropExtractingStage extends BasePipelineStage<CropOrigin, CropExtra
             }
         });
 
-        return nextStage != null ? nextStage.execute(data) : null;
+        accept(data);
     }
 
     @Override
     public void getResult() {
-        if (!failedCrops.isEmpty()) {
-            log.info("{} result", NAME);
-            failedCrops.forEach(((s, crops) -> {
-                log.info(s);
-                log.info("Failed crops:");
-                crops.forEach(crop -> log.info(crop.getIdentifier().toString()));
-            }));
-        }
+        super.getResult();
+        log.info("Failed crops: {}", failedCrops.size());
     }
 }

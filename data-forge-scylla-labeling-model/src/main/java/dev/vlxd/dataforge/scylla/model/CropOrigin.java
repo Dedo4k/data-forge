@@ -8,8 +8,12 @@ import dev.vlxd.dataforge.scylla.model.mapping.Annotation;
 import dev.vlxd.dataforge.scylla.model.mapping.BndBox;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Unmarshaller;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.lang.Nullable;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -21,18 +25,19 @@ import java.util.List;
 import java.util.Objects;
 
 @Slf4j
-@Setter
 @Getter
 @Builder
 @ToString
 @AllArgsConstructor
 public class CropOrigin implements TokenOrigin<Crop, CropIdentifier> {
 
-    private String name;
-    private Path imagePath;
-    private Path annotationPath;
+    private final String name;
+    private final Path imagePath;
+    private final Path annotationPath;
 
+    @Nullable
     private BufferedImage image;
+    @Nullable
     private Annotation annotation;
 
     public CropOrigin(String name, Path imagePath, Path annotationPath) {

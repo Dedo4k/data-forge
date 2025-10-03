@@ -1,15 +1,17 @@
-package dev.vlxd.dataforge.scylla.model.pipeline.stage;
+package dev.vlxd.dataforge.scylla.model.pipeline.stage.origin;
 
+import dev.vlxd.dataforge.core.DataForgeContext;
 import dev.vlxd.dataforge.core.exception.PipelineStageConfigParseException;
 import dev.vlxd.dataforge.core.pipeline.BasePipelineStage;
-import dev.vlxd.dataforge.core.pipeline.PipelineContext;
 import dev.vlxd.dataforge.scylla.model.CropOrigin;
 import dev.vlxd.dataforge.scylla.model.mapping.LayoutObject;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class ClassnameRoutingStage extends BasePipelineStage<CropOrigin, ClassnameRoutingStageConfig> {
 
@@ -17,7 +19,8 @@ public class ClassnameRoutingStage extends BasePipelineStage<CropOrigin, Classna
 
     private static final String CLASSNAMES_PARSE_ERROR = "Failed to parse config {}. classnames should consist of strings";
 
-    public ClassnameRoutingStage(Map<String, Object> configMap, PipelineContext pipelineContext) {
+    public ClassnameRoutingStage(Map<String, Object> configMap, DataForgeContext context) {
+        super(NAME, context, CropOrigin.class);
         ClassnameRoutingStageConfig.ClassnameRoutingStageConfigBuilder stageConfigBuilder = ClassnameRoutingStageConfig.builder();
         List<ClassnameRoutingStageConfig.PipelineRoute> routes = new ArrayList<>();
         Object routesObj = configMap.get("routes");
@@ -44,34 +47,20 @@ public class ClassnameRoutingStage extends BasePipelineStage<CropOrigin, Classna
             }
         }
         this.config = stageConfigBuilder.routes(routes).build();
-        this.pipelineContext = pipelineContext;
     }
 
     @Override
-    public String getName() {
-        return NAME;
-    }
-
-    @Override
-    public ClassnameRoutingStageConfig getConfig() {
-        return config;
-    }
-
-    @Override
-    public CropOrigin execute(CropOrigin data) {
+    public void execute(CropOrigin data) {
         for (ClassnameRoutingStageConfig.PipelineRoute route : config.getRoutes()) {
-            for (LayoutObject object : data.getAnnotation().getObjects()) {
-                if (route.getClassnames().contains(object.getName())) {
-                    pipelineContext.getPipelineManager().getPipeline(route.getTarget()).execute(data);
+            if (data.getAnnotation() != null) {
+                for (LayoutObject object : data.getAnnotation().getObjects()) {
+                    if (route.getClassnames().contains(object.getName())) {
+                        context.getPipelineManager().getPipeline(route.getTarget()).execute(data);
+                    }
                 }
             }
         }
 
-        return nextStage != null ? nextStage.execute(data) : null;
-    }
-
-    @Override
-    public void getResult() {
-
+        accept(data);
     }
 }

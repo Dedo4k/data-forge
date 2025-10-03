@@ -6,7 +6,9 @@ public interface PipelineStage<D, C extends PipelineStageConfig> {
 
     C getConfig();
 
-    D execute(D data);
+    void execute(D data);
 
     void getResult();
+
+    Class<D> getDataType();
 }

@@ -1,8 +1,8 @@
-package dev.vlxd.dataforge.scylla.model.pipeline.stage;
+package dev.vlxd.dataforge.scylla.model.pipeline.stage.origin;
 
+import dev.vlxd.dataforge.core.DataForgeContext;
 import dev.vlxd.dataforge.core.exception.PipelineStageConfigParseException;
 import dev.vlxd.dataforge.core.pipeline.BasePipelineStage;
-import dev.vlxd.dataforge.core.pipeline.PipelineContext;
 import dev.vlxd.dataforge.scylla.model.CropOrigin;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,7 +20,8 @@ public class ClassnameValidationStage extends BasePipelineStage<CropOrigin, Clas
 
     private final List<CropOrigin> invalidOrigins = new CopyOnWriteArrayList<>();
 
-    public ClassnameValidationStage(Map<String, Object> configMap, PipelineContext pipelineContext) {
+    public ClassnameValidationStage(Map<String, Object> configMap, DataForgeContext context) {
+        super(NAME, context, CropOrigin.class);
         ClassnameValidationStageConfig.ClassnameValidationStageConfigBuilder builder = ClassnameValidationStageConfig.builder();
         Object blacklist = configMap.get("blacklist");
         if (blacklist instanceof Map<?, ?> map) {
@@ -49,32 +50,31 @@ public class ClassnameValidationStage extends BasePipelineStage<CropOrigin, Clas
             builder.fallback(value);
         }
         this.config = builder.build();
-        this.pipelineContext = pipelineContext;
     }
 
     @Override
-    public String getName() {
-        return NAME;
-    }
-
-    @Override
-    public ClassnameValidationStageConfig getConfig() {
-        return config;
-    }
-
-    @Override
-    public CropOrigin execute(CropOrigin data) {
-        if (data.getAnnotation().getObjects().stream().anyMatch(layoutObject -> config.getBlackList().contains(layoutObject.getName()))) {
-            invalidOrigins.add(data);
-            pipelineContext.getPipelineManager().getPipeline(config.getFallback()).execute(data);
+    public void execute(CropOrigin data) {
+        if (data.getAnnotation() != null) {
+            if (data.getAnnotation().getObjects().stream()
+                    .anyMatch(layoutObject -> config.getBlackList().contains(layoutObject.getName()))) {
+                reject(data);
+                return;
+            }
         }
 
-        return nextStage != null ? nextStage.execute(data) : null;
+        accept(data);
     }
 
     @Override
     public void getResult() {
-        log.info("{} result", NAME);
-        invalidOrigins.forEach(cropOrigin -> log.info(cropOrigin.getName()));
+        super.getResult();
+        log.info("Invalid data: {}", invalidOrigins.size());
+    }
+
+    @Override
+    public void reject(CropOrigin data) {
+        super.reject(data);
+        invalidOrigins.add(data);
+        context.getPipelineManager().getPipeline(config.getFallback()).execute(data);
     }
 }

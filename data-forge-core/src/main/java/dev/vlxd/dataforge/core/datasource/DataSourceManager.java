@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +30,7 @@ public class DataSourceManager {
 
     private final List<DataSourceConfigurationProperties> properties;
 
-    private final Map<String, DataSource> dataSources = new HashMap<>();
+    private Map<String, DataSource> dataSources;
 
     @Autowired
     public DataSourceManager(DataForgeConfigurationProperties config) {
@@ -40,10 +41,11 @@ public class DataSourceManager {
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
         log.debug("Data sources initialization...");
-        resolveDataSources(properties);
+        dataSources = Collections.unmodifiableMap(resolveDataSources(properties));
     }
 
-    private void resolveDataSources(List<DataSourceConfigurationProperties> configs) {
+    private Map<String, DataSource> resolveDataSources(List<DataSourceConfigurationProperties> configs) {
+        Map<String, DataSource> dataSources = new HashMap<>();
         log.debug("Resolving data sources...");
         configs.forEach(resourceConfig -> {
             DataSource dataSource = resolveDataSource(resourceConfig);
@@ -51,6 +53,7 @@ public class DataSourceManager {
             dataSources.put(dataSource.getId(), dataSource);
         });
         log.debug("Data sources resolved: {}", dataSources.size());
+        return dataSources;
     }
 
     public List<DataSource> getPrimaryDataSources() {

@@ -1,8 +1,8 @@
-package dev.vlxd.dataforge.scylla.model.pipeline.stage;
+package dev.vlxd.dataforge.scylla.model.pipeline.stage.origin;
 
+import dev.vlxd.dataforge.core.DataForgeContext;
 import dev.vlxd.dataforge.core.exception.PipelineStageConfigParseException;
 import dev.vlxd.dataforge.core.pipeline.BasePipelineStage;
-import dev.vlxd.dataforge.core.pipeline.PipelineContext;
 import dev.vlxd.dataforge.scylla.model.CropOrigin;
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,7 +15,8 @@ public class ObjectDeletionStage extends BasePipelineStage<CropOrigin, ObjectDel
 
     private final static String CLASSNAMES_PARSE_ERROR = "Failed to parse config {}. classnames should consist of strings";
 
-    public ObjectDeletionStage(Map<String, Object> configMap, PipelineContext pipelineContext) {
+    public ObjectDeletionStage(Map<String, Object> configMap, DataForgeContext context) {
+        super(NAME, context, CropOrigin.class);
         ObjectDeletionStageConfig.ObjectDeletionStageConfigBuilder builder = ObjectDeletionStageConfig.builder();
         Object classnames = configMap.get("classnames");
         if (classnames instanceof Map<?, ?> map) {
@@ -29,27 +30,10 @@ public class ObjectDeletionStage extends BasePipelineStage<CropOrigin, ObjectDel
                     }).toList());
         }
         this.config = builder.build();
-        this.pipelineContext = pipelineContext;
     }
 
     @Override
-    public String getName() {
-        return NAME;
-    }
-
-    @Override
-    public ObjectDeletionStageConfig getConfig() {
-        return config;
-    }
-
-    @Override
-    public CropOrigin execute(CropOrigin data) {
-
-        return nextStage != null ? nextStage.execute(data) : null;
-    }
-
-    @Override
-    public void getResult() {
-
+    public void execute(CropOrigin data) {
+        accept(data);
     }
 }

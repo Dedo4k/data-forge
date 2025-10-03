@@ -1,24 +1,19 @@
 package dev.vlxd.dataforge.scylla.model;
 
 import dev.vlxd.dataforge.api.TokenIdentifier;
+import lombok.AllArgsConstructor;
 import lombok.ToString;
 
 import java.awt.image.BufferedImage;
 
 @ToString
+@AllArgsConstructor
 public class CropIdentifier implements TokenIdentifier<Crop, CropOrigin> {
 
-    private int xMin;
-    private int yMin;
-    private int xMax;
-    private int yMax;
-
-    public CropIdentifier(int xMin, int yMin, int xMax, int yMax) {
-        this.xMin = xMin;
-        this.yMin = yMin;
-        this.xMax = xMax;
-        this.yMax = yMax;
-    }
+    private final int xMin;
+    private final int yMin;
+    private final int xMax;
+    private final int yMax;
 
     @Override
     public Crop identify(CropOrigin origin) {

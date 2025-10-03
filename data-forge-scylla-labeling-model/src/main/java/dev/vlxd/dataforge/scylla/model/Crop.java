@@ -8,7 +8,7 @@ import java.awt.image.BufferedImage;
 @ToString
 public class Crop extends BaseToken<BufferedImage, CropVector, CropIdentifier, CropOrigin> {
 
-    public Crop(BufferedImage crop, CropVector vector, CropIdentifier identifier, CropOrigin source) {
-        super(crop, vector, identifier, source);
+    public Crop(BufferedImage crop, CropVector vector, CropIdentifier identifier, CropOrigin origin) {
+        super(crop, vector, identifier, origin);
     }
 }

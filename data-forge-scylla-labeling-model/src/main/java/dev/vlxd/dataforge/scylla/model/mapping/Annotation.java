@@ -4,6 +4,7 @@ import jakarta.xml.bind.annotation.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -20,5 +21,5 @@ public class Annotation {
     private Size size;
     private Integer segmented;
     @XmlElement(name = "object")
-    private List<LayoutObject> objects;
+    private List<LayoutObject> objects = new ArrayList<>();
 }

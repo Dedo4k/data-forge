@@ -40,6 +40,7 @@ data-forge:
       load-strategy: validate_create
   pipelines:
     - id: pipeline_A
+      type: origin
       name: pipeline_A
       primary: true
       stages:
@@ -63,6 +64,10 @@ data-forge:
           processor: cropExtractingStage
           config:
             data-source: crops-folder
+        - name: stage_5
+          processor: tokenPipelineExecutionStage
+          config:
+            target: token_pipeline
         - name: stage_3
           processor: classnameRoutingStage
           config:
@@ -72,6 +77,7 @@ data-forge:
               - classnames: [ person, car, dog, cat ]
                 target: pipeline_C
     - id: pipeline_B
+      type: origin
       name: pipeline_B
       stages:
         - name: stage_1
@@ -91,6 +97,7 @@ data-forge:
             probability: .4
             data-source: gun-folder-2
     - id: pipeline_C
+      type: origin
       name: pipeline_C
       stages:
         - name: stage_1
@@ -98,9 +105,23 @@ data-forge:
           config:
             data-source: person-folder
     - id: fallback_1
+      type: origin
       name: fallback_1
       stages:
         - name: stage_1
           processor: collectStage
           config:
             data-source: fallback-folder
+    - id: token_pipeline
+      type: token
+      name: token_pipeline
+      stages:
+        - name: stage_1
+          processor: noiseApplyingStage
+          config:
+            stdDev: 5.0
+            mean: 0.0
+        - name: stage_2
+          processor: tokenCollectStage
+          config:
+            data-source: crops-folder

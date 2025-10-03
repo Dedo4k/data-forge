@@ -1,4 +1,4 @@
-package dev.vlxd.dataforge.scylla.model.pipeline.stage;
+package dev.vlxd.dataforge.scylla.model.pipeline.stage.origin;
 
 import dev.vlxd.dataforge.api.pipeline.PipelineStageConfig;
 import lombok.AllArgsConstructor;

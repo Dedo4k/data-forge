@@ -1,16 +1,10 @@
 package dev.vlxd.dataforge.core;
 
-import dev.vlxd.dataforge.api.pipeline.Pipeline;
-import dev.vlxd.dataforge.api.pipeline.PipelineStage;
-import dev.vlxd.dataforge.core.configuration.DataForgeConfigurationProperties;
 import dev.vlxd.dataforge.core.datasource.DataSource;
-import dev.vlxd.dataforge.core.datasource.DataSourceManager;
-import dev.vlxd.dataforge.core.exception.ModelNotFoundException;
 import dev.vlxd.dataforge.core.model.Model;
 import dev.vlxd.dataforge.core.model.ModelLoader;
-import dev.vlxd.dataforge.core.model.ModelRegistry;
-import dev.vlxd.dataforge.core.pipeline.BasePipelineExecutor;
-import dev.vlxd.dataforge.core.pipeline.PipelineManager;
+import dev.vlxd.dataforge.core.pipeline.BasePipeline;
+import dev.vlxd.dataforge.core.pipeline.executor.BasePipelineExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,7 +12,8 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.util.Collection;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 
@@ -28,47 +23,49 @@ import java.util.List;
 @ConditionalOnProperty(prefix = "data-forge", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DataForge {
 
-    private final ModelRegistry modelRegistry;
-    private final DataSourceManager datasourceManager;
-    private final PipelineManager pipelineManager;
-    private final DataForgeConfigurationProperties properties;
+    private final DataForgeContext context;
 
     @Autowired
-    public DataForge(ModelRegistry modelRegistry,
-                     DataSourceManager datasourceManager,
-                     PipelineManager pipelineManager,
-                     DataForgeConfigurationProperties properties) {
-        this.modelRegistry = modelRegistry;
-        this.datasourceManager = datasourceManager;
-        this.pipelineManager = pipelineManager;
-        this.properties = properties;
+    public DataForge(DataForgeContext context) {
+        this.context = context;
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
         log.debug("DataForge initialization...");
         try {
-            String modelName = properties.getModel();
+            Model model = context.getModelManager().getActiveModel();
 
-            Model model = modelRegistry.getModel(modelName);
-
-            if (model == null) {
-                throw new ModelNotFoundException("Model {} not found in registry", modelName);
-            }
-
-            List<DataSource> dataSources = datasourceManager.getPrimaryDataSources();
+            List<DataSource> dataSources = context.getDataSourceManager().getPrimaryDataSources();
 
             ModelLoader loader = model.getLoader();
 
             List dataOrigins = loader.loadModel(dataSources);
 
-            Pipeline primaryPipeline = pipelineManager.getPrimaryPipeline();
+            BasePipeline primaryPipeline = context.getPipelineManager().getPrimaryPipeline();
 
-            BasePipelineExecutor pipelineExecutor = new BasePipelineExecutor(primaryPipeline, properties.getConcurrency());
+            BasePipelineExecutor pipelineExecutor = context.getPipelineExecutorManager().getExecutorService(primaryPipeline);
+
+            long start = System.currentTimeMillis();
 
             pipelineExecutor.execute(dataOrigins);
 
-            pipelineManager.getPipelines().values().stream().map(Pipeline::getStages).flatMap(Collection::stream).forEach(PipelineStage::getResult);
+            context.getPipelineExecutorManager().awaitAllExecutions();
+            long end = System.currentTimeMillis();
+
+            context.getPipelineExecutorManager().shutdown();
+
+            log.info(Duration.of(end - start, ChronoUnit.MILLIS).toString());
+
+            context.getPipelineManager().getPipelines().forEach((s, basePipeline) -> {
+                log.info("Pipeline: {}", s);
+                basePipeline.getStages().forEach(stage -> {
+                    log.info("-----------------------------");
+                    stage.getResult();
+                });
+                log.info("=============================");
+            });
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

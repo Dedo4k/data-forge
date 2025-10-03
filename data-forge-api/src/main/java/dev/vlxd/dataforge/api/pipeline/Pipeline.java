@@ -17,4 +17,6 @@ public interface Pipeline<D, S extends PipelineStage<?, ?>> {
     void execute(D data);
 
     void execute(List<D> data);
+
+    Class<D> getDataType();
 }
